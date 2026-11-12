@@ -32,9 +32,10 @@ pub fn main(init: std.process.Init) !void {
             const matched = line[pos .. pos + search.len];
             const after = line[pos + search.len ..];
 
+            // \x1b[1m = bold
             // \x1b[32m = green
             // \x1b[0m = reset
-            print("{s}\x1b[32m{s}\x1b[0m{s}\n", .{ before, matched, after });
+            print("{s}\x1b[1m\x1b[32m{s}\x1b[0m{s}\n", .{ before, matched, after });
         }
     }
 }
