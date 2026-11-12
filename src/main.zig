@@ -13,12 +13,12 @@ pub fn main(init: std.process.Init) !void {
     }
 
     const search: []const u8 = args[1];
-    const filename: []const u8 = args[2];
+    const file_path: []const u8 = args[2];
 
     const content = try std.Io.Dir.readFileAlloc(
         cwd,
         io,
-        filename,
+        file_path,
         alloc,
         .unlimited,
     );
@@ -27,10 +27,10 @@ pub fn main(init: std.process.Init) !void {
     var lines = std.mem.splitScalar(u8, content, '\n');
 
     while (lines.next()) |line| {
-        if (std.mem.find(u8, line, search)) |pos| {
-            const before = line[0..pos];
-            const matched = line[pos .. pos + search.len];
-            const after = line[pos + search.len ..];
+        if (std.mem.find(u8, line, search)) |idx| {
+            const before = line[0..idx];
+            const matched = line[idx .. idx + search.len];
+            const after = line[idx + search.len ..];
 
             // \x1b[1m = bold
             // \x1b[32m = green
