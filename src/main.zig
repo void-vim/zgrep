@@ -15,33 +15,24 @@ pub fn main(init: std.process.Init) !void {
     const search: []const u8 = args[1];
     const file_path: []const u8 = if (args.len > 2) args[2] else "";
 
-    var stdin_buffer: [4096]u8 = undefined;
-    var stdin_reader = std.Io.File.stdin().reader(io, &stdin_buffer);
+    if (file_path.len > 0) {
+        var file = try cwd.openFile(io, file_path, .{});
+        defer file.close(io);
 
-    const input: []u8 = blk: switch (file_path.len) {
-        else => {
-            if (file_path.len > 0) {
-                break :blk try std.Io.Dir.readFileAlloc(
-                    cwd,
-                    io,
-                    file_path,
-                    alloc,
-                    .unlimited,
-                );
-            } else {
-                break :blk try stdin_reader.interface.allocRemaining(
-                    alloc,
-                    .unlimited,
-                );
-            }
-        },
-    };
-    defer alloc.free(input);
+        var file_buffer: [4096]u8 = undefined;
+        var file_reader = file.reader(io, &file_buffer);
 
-    // splitScalar: divide data based 1 character '\n' (new line)
-    var lines = std.mem.splitScalar(u8, input, '\n');
+        try processReader(&file_reader.interface, search);
+    } else {
+        var stdin_buffer: [4096]u8 = undefined;
+        var stdin_reader = std.Io.File.stdin().reader(io, &stdin_buffer);
 
-    while (lines.next()) |line| {
+        try processReader(&stdin_reader.interface, search);
+    }
+}
+
+fn processReader(reader: *std.Io.Reader, search: []const u8) !void {
+    while (try reader.takeDelimiter('\n')) |line| {
         if (std.mem.find(u8, line, search)) |idx| {
             const before = line[0..idx];
             const matched = line[idx .. idx + search.len];
