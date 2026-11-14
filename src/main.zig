@@ -7,8 +7,13 @@ pub fn main(init: std.process.Init) !void {
     const alloc = init.arena.allocator();
     const args = try init.minimal.args.toSlice(alloc);
 
+    var stdout_buffer: [1024]u8 = undefined;
+    var stdout_writter = std.Io.File.stdout().writer(io, &stdout_buffer);
+    const stdout = &stdout_writter.interface;
+
     if (args.len <= 1) {
-        print("Usage: zgrep <word> [FILE]\n", .{});
+        try stdout.writeAll("Usage: zgrep <word> [FILE]\n");
+        try stdout.flush();
         return;
     }
 
@@ -21,14 +26,14 @@ pub fn main(init: std.process.Init) !void {
         defer file.close(io);
 
         var file_reader = file.reader(io, &buffer);
-        try processReader(&file_reader.interface, search);
+        try processReader(&file_reader.interface, search, stdout);
     } else {
         var stdin_reader = std.Io.File.stdin().reader(io, &buffer);
-        try processReader(&stdin_reader.interface, search);
+        try processReader(&stdin_reader.interface, search, stdout);
     }
 }
 
-fn processReader(reader: *std.Io.Reader, search: []const u8) !void {
+fn processReader(reader: *std.Io.Reader, search: []const u8, stdout: *std.Io.Writer) !void {
     while (try reader.takeDelimiter('\n')) |line| {
         if (std.mem.find(u8, line, search)) |idx| {
             const before = line[0..idx];
@@ -38,11 +43,12 @@ fn processReader(reader: *std.Io.Reader, search: []const u8) !void {
             // \x1b[1m = bold
             // \x1b[32m = green
             // \x1b[0m = reset
-            print("{s}\x1b[1m\x1b[32m{s}\x1b[0m{s}\n", .{
+            try stdout.print("{s}\x1b[1m\x1b[32m{s}\x1b[0m{s}\n", .{
                 before,
                 matched,
                 after,
             });
+            try stdout.flush();
         }
     }
 }
